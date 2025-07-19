@@ -1,0 +1,18 @@
+name: Train Final Model
+description: Aggregates predictions and trains a final model.
+
+inputs:
+- {name: prediction_inputs, type: List, description: 'List of GCS paths to prediction files'}
+outputs:
+- {name: final_model_path, type: GCSPath, description: 'GCS path for the final aggregated model'}
+
+implementation:
+  container:
+    image: us-central1-docker.pkg.dev/your-gcp-project-id/fraud-repo/fraud-pipeline:latest
+    # This command is simplified. Your script would need to handle a list of file paths.
+    # KFP passes a JSON-formatted list of strings.
+    command: [
+      python, -m, fraud.train, # Re-using the train script for simplicity
+      --data-path, {inputValue: prediction_inputs}, # Your script must handle this input format
+      --model-output-path, {outputPath: final_model_path}
+    ]

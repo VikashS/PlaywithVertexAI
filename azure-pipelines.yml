@@ -1,0 +1,63 @@
+# azure-pipelines.yml
+
+trigger:
+- main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  # GCP Configuration - Consider setting these in Azure DevOps Library Variable Groups
+  GCP_PROJECT_ID: 'your-gcp-project-id'
+  GCP_REGION: 'us-central1' # e.g., us-central1
+  ARTIFACT_REPO: 'fraud-repo' # Your Artifact Registry repo name
+  IMAGE_NAME: 'fraud-pipeline'
+
+  # Azure DevOps Configuration
+  GCP_SERVICE_CONNECTION: 'gcp-service-connection-name' # The name of your Azure DevOps Service Connection to GCP
+  GCP_KEY_SECURE_FILE: 'your-gcp-key.json' # The name of the key file in Azure DevOps Secure Files
+
+steps:
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '3.9'
+  displayName: 'Use Python 3.9'
+
+- script: |
+    pip install --upgrade pip
+    pip install google-cloud-aiplatform kfp==1.8.22
+  displayName: 'Install Python dependencies'
+
+- task: Docker@2
+  displayName: 'Build and Push Docker Image'
+  inputs:
+    command: buildAndPush
+    repository: $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT_ID)/$(ARTIFACT_REPO)/$(IMAGE_NAME)
+    dockerfile: '$(Build.SourcesDirectory)/Dockerfile'
+    tags: |
+      latest
+      $(Build.BuildId)
+    containerRegistry: $(GCP_SERVICE_CONNECTION) # Use the Service Connection for auth
+
+- task: DownloadSecureFile@1
+  name: gcpServiceAccountKey
+  displayName: 'Download GCP Service Account Key'
+  inputs:
+    secureFile: $(GCP_KEY_SECURE_FILE)
+
+- script: |
+    gcloud auth activate-service-account --key-file=$(gcpServiceAccountKey.secureFilePath)
+    gcloud config set project $(GCP_PROJECT_ID)
+  displayName: 'Authenticate gcloud CLI'
+
+- script: |
+    python pipelines/fraud_pipeline.py
+  displayName: 'Compile KFP Pipeline to JSON'
+
+- script: |
+    gcloud ai pipelines jobs submit \
+      --region=$(GCP_REGION) \
+      --pipeline-file=pipelines/fraud_pipeline.json \
+      --display-name="fraud-pipeline-run-$(Build.BuildId)" \
+      --parameter-file=pipelines/params.yaml
+  displayName: 'Submit Job to Vertex AI'

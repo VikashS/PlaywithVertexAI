@@ -1,0 +1,18 @@
+name: Get Predictions
+description: Gets predictions from a trained model.
+
+inputs:
+- {name: data_path, type: GCSPath, description: 'GCS path to data for prediction'}
+- {name: model_path, type: GCSPath, description: 'GCS path to the model'}
+outputs:
+- {name: predictions_output_path, type: GCSPath, description: 'GCS path for predictions'}
+
+implementation:
+  container:
+    image: us-central1-docker.pkg.dev/your-gcp-project-id/fraud-repo/fraud-pipeline:latest
+    command: [
+      python, -m, fraud.predict,
+      --data-path, {inputValue: data_path},
+      --model-path, {inputValue: model_path},
+      --predictions-output-path, {outputPath: predictions_output_path}
+    ]

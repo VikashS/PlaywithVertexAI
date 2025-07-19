@@ -1,0 +1,16 @@
+name: Common ETL
+description: Runs the common ETL script.
+
+inputs:
+- {name: input_data_path, type: String, description: 'GCS path to raw data'}
+outputs:
+- {name: processed_data_output_path, type: GCSPath, description: 'GCS path for processed data'}
+
+implementation:
+  container:
+    image: us-central1-docker.pkg.dev/your-gcp-project-id/fraud-repo/fraud-pipeline:latest
+    command: [
+      python, -m, fraud.etl,
+      --data-path, {inputValue: input_data_path},
+      --processed-data-output-path, {outputPath: processed_data_output_path}
+    ]

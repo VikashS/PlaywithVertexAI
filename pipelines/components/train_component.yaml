@@ -1,0 +1,16 @@
+name: Train Model
+description: Trains a model using the fraud package.
+
+inputs:
+- {name: data_path, type: GCSPath, description: 'GCS path to training data'}
+outputs:
+- {name: model_output_path, type: GCSPath, description: 'GCS path where the trained model is saved'}
+
+implementation:
+  container:
+    image: us-central1-docker.pkg.dev/your-gcp-project-id/fraud-repo/fraud-pipeline:latest
+    command: [
+      python, -m, fraud.train,
+      --data-path, {inputValue: data_path},
+      --model-output-path, {outputPath: model_output_path}
+    ]

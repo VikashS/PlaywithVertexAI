@@ -1,0 +1,5 @@
+# Runtime parameters for the pipeline
+# Replace with your actual GCS paths and project info
+project_id: "your-gcp-project-id"
+location: "us-central1"
+raw_data_gcs_path: "gs://your-bucket-name/data/raw_data.csv"
